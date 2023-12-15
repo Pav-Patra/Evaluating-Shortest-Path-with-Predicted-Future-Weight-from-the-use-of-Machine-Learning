@@ -2,8 +2,7 @@ import Incremental_Shortest_Path as ISP     # my own defined Graph object for th
 import matplotlib.pyplot as plt
 import keyboard, time
 import graphEmbedding as GE        # defined class that returns embedding of a graph
-
-
+import random
 
 
 # Create a graph 
@@ -66,10 +65,14 @@ while respone == 1:
 
     while not keyboard.is_pressed('space'):   # if the shortest path is desired to be displayed by the user, the user must hold down 'space'
                                               # this is the case due to time.sleep() where the system cannot read any key press during this time
-        g.changeGraph()
+
+        if(random.randint(1,5) == 2):    # 1/5 probability of the graph randomly changing on each 1 second iteration
+            g.changeGraph()
+        
+        # there is no way of determining whether the graph requires updating with the ISP algorithm or not
         g.incrementalShortestPath()
 
-        time.sleep(3)
+        time.sleep(1)
 
     plt.clf()
     plt.cla()

@@ -57,7 +57,7 @@ class Graph:
 
         # this graph will ensure the graph contains double the number of edges than nodes
 
-        totalNodes = 40        # add each of these stated totalNodes to the graph, starting from zero
+        totalNodes = 10        # add each of these stated totalNodes to the graph, starting from zero
         for i in range(totalNodes):
             #print("")
             # random node values
@@ -96,8 +96,10 @@ class Graph:
                 self.addedNodes.append(y)
 
             # now add edge connection from new node to node y, regardless of whether it had already existed in the graph or not
-            self.addEdge(x, y, weight=random.randint(0, 30))
-            self.addedEdges.append((x,y))
+            # final check to not duplicate edges with different weights
+            if (x,y) not in self.addedEdges and (y,x) not in self.addedEdges:
+                self.addEdge(x, y, weight=random.randint(0, 30))
+                self.addedEdges.append((x,y))
 
       
     def drawGraph(self):
@@ -118,8 +120,8 @@ class Graph:
         for i in range(numNodes):
             self.draw_graph.add_node(i, pos=(x,y))
             #print(f"Adding node {i}")
-            x = random.randint(-50,100)
-            y = random.randint(-50,100)
+            # x = random.randint(-50,100)
+            # y = random.randint(-50,100)
 
         # draw all edges
         #print(self.graph[0][0][0])
@@ -130,7 +132,8 @@ class Graph:
 
         #print(f"Nummber of nodes is {numNodes} in DG")
 
-        pos = nx.get_node_attributes(self.draw_graph, 'pos')
+        pos = nx.spring_layout(self.draw_graph, seed=7)     # positions for all nodes - seed for reproducibility
+        #pos = nx.get_node_attributes(self.draw_graph, 'pos')
         nx.draw(self.draw_graph, pos, with_labels=True)
         labels = nx.get_edge_attributes(self.draw_graph,'weight')
         nx.draw_networkx_edge_labels(self.draw_graph, pos, edge_labels=labels)
@@ -350,7 +353,7 @@ class Graph:
         # if the destination node has been selected after a recursive call, return the selected node's stored summed weight
         # this represents the shortest path between root to dest
 
-        print(src, end=" ")
+        #print(src, end=" ")
         if(src == dest):
             return selectTree[src].child[1]
         
