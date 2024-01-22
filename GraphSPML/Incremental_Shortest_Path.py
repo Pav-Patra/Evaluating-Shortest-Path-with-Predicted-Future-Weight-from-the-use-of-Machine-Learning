@@ -9,7 +9,7 @@ from ctypes import Array
 # define a tree class
 class Node():
 
-    def __init__(self, name, weight):
+    def __init__(self, name, weight: int):
         self.children = []
         self.child = (name, weight)
 
@@ -45,19 +45,19 @@ class Graph:
 
 
     # Function to add an edge
-    def addEdge(self, u, v, weight):
+    def addEdge(self, u: int, v: int, weight: int):
         self.graph[u].append((v, weight))
         if( (u, weight) not in self.graph[v] ):         # form the adjacency matrix by adding the weight for the indices 
             self.graph[v].append((u, weight))           # reversed as well (backwards directrion in an uindirected graph)
             
 
     # second parameter g must be of type Graph
-    def generateGraph(self):
+    def generateGraph(self, num_nodes: int):
         # automatic way of generating the graph g with a large number of nodes and edges
 
         # this graph will ensure the graph contains double the number of edges than nodes
 
-        totalNodes = 10        # add each of these stated totalNodes to the graph, starting from zero
+        totalNodes = num_nodes        # add each of these stated totalNodes to the graph, starting from zero
         for i in range(totalNodes):
             #print("")
             # random node values
@@ -78,7 +78,7 @@ class Graph:
             if x not in self.addedNodes and len(self.addedNodes) > 0:     # change len(self.addedNodes) > 0 to ensure all nodes are connected, however this significantly slows down performance. 
                 #print("fix x")
                 tempNode = random.choice(self.addedNodes)
-                self.addEdge(tempNode, x, weight=random.randint(0, 30))
+                self.addEdge(tempNode, x, weight=random.randint(1, 10))
                 self.addedNodes.append(x)
                 self.addedEdges.append((tempNode, x))
             elif self.addedNodes == []:          # since the list of visisted nodes is empty, it is impossible to assign x to an existing node
@@ -89,7 +89,7 @@ class Graph:
             if y not in self.addedNodes and len(self.addedNodes) > 0:      # change len(self.addedNodes) > 0 to ensure all nodes are connected, however this significantly slows down performance. 
                 #print("fix y")
                 tempNode = random.choice(self.addedNodes)
-                self.addEdge(tempNode, y, weight=random.randint(0, 30))
+                self.addEdge(tempNode, y, weight=random.randint(1, 10))
                 self.addedNodes.append(y)
                 self.addedEdges.append((tempNode, y))
             elif self.addedNodes == []:          # since the list of visisted nodes is empty, it is impossible to assign x to an existing node
@@ -98,7 +98,7 @@ class Graph:
             # now add edge connection from new node to node y, regardless of whether it had already existed in the graph or not
             # final check to not duplicate edges with different weights
             if (x,y) not in self.addedEdges and (y,x) not in self.addedEdges:
-                self.addEdge(x, y, weight=random.randint(0, 30))
+                self.addEdge(x, y, weight=random.randint(1, 10))
                 self.addedEdges.append((x,y))
 
       
@@ -176,7 +176,7 @@ class Graph:
     # Function to add a new node to the already existing graph
     # the function calculates the next node number by taking the existing total number of nodes
     # the function requirest a 'connect' parameter which connects the new node to an existing node in the current graph
-    def addAdditionalNode(self, connect):
+    def addAdditionalNode(self, connect: int):
 
         newNode = max(self.graph)+1
         self.addedNodes.append(newNode)
@@ -189,7 +189,7 @@ class Graph:
     # function to delete a specified edge 'edg' from the graph 'self.graph'
     # the purpose of this fucntion is to investigate how the algorithm can recompute
     # shortest paths after edge deletions
-    def deleteEdge(self, node1, node2):
+    def deleteEdge(self, node1: int, node2: int):
         # parameters are two nodes where there exists an edge connection between them
 
         print(self.addedNodes)
@@ -207,7 +207,7 @@ class Graph:
  
 
     # Function to print a BFS of graph
-    def BFS(self, s):
+    def BFS(self, s: int):
 
         # Mark all vertices as not visited
         visited = [False] * (max(self.graph) + 1)
@@ -261,7 +261,7 @@ class Graph:
     # and ignore all others.
     # the purpose of using a heap/priority queue is to achieve a time complexity of O(E*logV) as there will be at most O(E) vertices in the priority queue and O(logE) is the same as O(logV)
     # the time complexity of an adjacency matrix implementation of Dijkstra's algorithm is O(V^2)
-    def dijkstraSP(self, src) -> Array:       # this function prints thje shortest path from a given src to all other nodes
+    def dijkstraSP(self, src: int) -> Array:       # this function prints thje shortest path from a given src to all other nodes
         # utilise a heap which uses a priority queue to store nodes that are being preprocessed
         #  
         pq = []
@@ -330,9 +330,10 @@ class Graph:
         # an update algorithm will be implemented to alter these trees in case of: edge insertions, edge deletions, change in edge weights
 
         dists = []          # list of distance lists for each node
-        self.trees = [None] * max(self.graph)
+        # ensure tree nodes account for final maximum node in the graph
+        self.trees = [None] * (max(self.graph) + 1) 
  
-        for i in range(max(self.graph)):
+        for i in range(max(self.graph) + 1):
             temp = self.dijkstraSP(i)
             dists.append(temp)
 
@@ -343,12 +344,14 @@ class Graph:
     # function to print the shortest path between src to dest
     # for a stated src node, fecth the rooted shortest path tree from 'trees' and calculate the shortest path sum 
     # from src to dest
-    def findShortestPath(self, root, src, dest):
+    def findShortestPath(self, root: int, src: int, dest: int):
         # root - ensures that the correct rooted tree is selected on each recursive call of the function
         # src - the currently selected node on the path between root to dest
         # dest - the final node which is being searched for
 
+        
         selectTree = self.trees[root]    # select the rooted shortest path tree
+                                         # issue here when selecting the last node (greates nuimbered node) as the src node (Index Error: list index out of range)
 
         # if the destination node has been selected after a recursive call, return the selected node's stored summed weight
         # this represents the shortest path between root to dest
@@ -368,4 +371,22 @@ class Graph:
                 # if findNode has been assigned an int, this means dest has been found, hence the recursive sequence stops
                 if not findNode is None:
                     return findNode
+                
+    
+    # function with the ability to store the currently generated graph in a .edgelist file
+    def createStoreEdgList(self, graphNum: str):
+        fileName = 'graph' + graphNum + '.edgelist'
+        lines = ""
+
+        for edge in self.addedEdges:
+            x = edge[0]
+            y = edge[1]
+            tupleIndex = [s[0] for s in self.graph[x]].index(y)
+            weight = self.graph[x][tupleIndex][1]
+            lines += str(x) + " " + str(y) + " " + str(weight) + "\n"
+
+        with open('C:/Users/pavpa/OneDrive/Documents/CS Uni/cs310/Project Practice Code/node2vec-deepLearning-distApprox/data/subsetGraphs/'+fileName, 'w') as fileEdgeList:
+            fileEdgeList.writelines(lines)
+            print(fileEdgeList, ' created')
+
 
