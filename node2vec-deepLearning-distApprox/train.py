@@ -14,6 +14,7 @@ import random
 import sys
 import io
 import os
+import os.path as osp
 from torchsummary import summary
 import time
 import copy
@@ -22,12 +23,43 @@ from utils import *
 from matplotlib import pyplot as plt
 from torch.utils.tensorboard import SummaryWriter
 
+"""
+This is a heavily modified file by Pav Patra taken from the following article: 
+https://towardsdatascience.com/shortest-path-distance-with-deep-learning-311e19d97569 which takes 
+concepts from the paper node2vec: Scalable Feature Learning for Networks by Grover, Aditya and Leskovec, 
+Jure (https://doi.org/10.1145/2939672.2939754). The original file contained several issues and 
+compatibility issues with my own system.
+"""
+
+"""
+This file is created by Pav Patra
+
+Execute this file in a virtual environment containing all packages for the libraries above. 
+
+This file trains a best case node2vec shortestst path finding model.
+The poor resulting MSE results are output at the end of execution
+
+"""
+
+
 # This file trains and evalueates the model
 
+# get current working directory
+cwd = os.getcwd()
+
+# get train, test, cv file paths
+trainPath = osp.join(cwd, "outputs", "train_xy_no_sampling_stdScale.pk")
+cvPath = osp.join(cwd, "outputs", "val_xy_no_sampling_stdScale.pk")
+testPath = osp.join(cwd, "outputs", "test_xy_no_sampling_stdScale.pk")
+trainCombineSample = osp.join(cwd, "outputs", "train_xy_combine_sampling.pk")
+print(trainPath)
+print(cvPath)
+print(testPath)
+
 # Read saved files into numpy arrays
-x_train, y_train = pickle.load(open('C:/Users/pavpa/OneDrive/Documents/CS Uni/cs310/Project Practice Code/node2vec-deepLearning-distApprox/outputs/train_xy_no_sampling_stdScale.pk', 'rb'))
-x_cv, y_cv = pickle.load(open('C:/Users/pavpa/OneDrive/Documents/CS Uni/cs310/Project Practice Code/node2vec-deepLearning-distApprox/outputs/val_xy_no_sampling_stdScale.pk', 'rb'))
-x_test, y_test = pickle.load(open('C:/Users/pavpa/OneDrive/Documents/CS Uni/cs310/Project Practice Code/node2vec-deepLearning-distApprox/outputs/test_xy_no_sampling_stdScale.pk', 'rb'))
+x_train, y_train = pickle.load(open(trainPath, 'rb'))
+x_cv, y_cv = pickle.load(open(cvPath, 'rb'))
+x_test, y_test = pickle.load(open(testPath, 'rb'))
 print('shapes of train, validation, test data ', x_train.shape, y_train.shape, x_cv.shape, y_cv.shape, x_test.shape, y_test.shape) 
 values, counts = np.unique(y_train, return_counts=True)
 num_features = x_train.shape[1]
@@ -57,22 +89,13 @@ over_sampler = RandomOverSampler(sampling_strategy=oversample_dict, random_state
 x_train, y_train = over_sampler.fit_resample(x_train, y_train.astype(int))
 print('Frequency of distance values after oversampling ', np.unique(y_train, return_counts=True))
 
-pickle.dump((x_train, y_train), open('C:/Users/pavpa/OneDrive/Documents/CS Uni/cs310/Project Practice Code/node2vec-deepLearning-distApprox/outputs/train_xy_combine_sampling.pk', 'wb'))
+pickle.dump((x_train, y_train), open(trainCombineSample, 'wb'))
 
 print(x_train.shape, y_train.shape)
 
 # shuffle data after over/under sampling
 x_train, y_train = shuffle_arrays_unison(arrays=[x_train, y_train], random_seed=np.random.seed(999))
 
-# scaler = MinMaxScaler(feature_range=(0, 1))
-# y_train = scaler.fit_transform(y_train.reshape(-1, 1)).flatten()
-# y_cv = scaler.transform(y_cv.reshape(-1, 1)).flatten()
-# y_test = scaler.transform(y_test.reshape(-1, 1)).flatten()
-
-# scaler = MinMaxScaler(feature_range=(0, 1))
-# x_train = scaler.fit_transform(x_train.reshape(-1, 1)).flatten()
-# x_cv = scaler.transform(x_cv.reshape(-1, 1)).flatten()
-# x_test = scaler.transform(x_test.reshape(-1, 1)).flatten()
 
 print(x_train.shape, y_train.shape)
 
@@ -216,7 +239,7 @@ best_model = None
 train_losses = []
 val_losses = []
 
-output_path = 'C:/Users/pavpa/OneDrive/Documents/CS Uni/cs310/Project Practice Code/node2vec-deepLearning-distApprox/outputs'
+output_path = osp.join(cwd, "outputs")
 tb_path = output_path+'/logs/runs'
 #run_path = tb_path+'/run47_smallerNN_noDO'
 run_path = tb_path+'/run2Weighted_GitHubOriginal_noDO'
@@ -238,7 +261,8 @@ else:
 
     # resume training on a saved model
     if resume_training:
-        prev_checkpoint_path = 'C:/Users/pavpa/OneDrive/Documents/CS Uni/cs310/Project Practice Code/node2vec-deepLearning-distApprox/outputs/logs/runs/run42_clr_g0.95/checkpoints' # change this
+        # change this
+        prev_checkpoint_path = osp.join(cwd, "outputs", "logs", "runs", "run42_clr_g0.95", "checkpoints")
         suffix = '1592579305.7273214'  # change this
         model.load_state_dict(torch.load(prev_checkpoint_path+'/model_'+suffix+'.pt'))
         optimizer.load_state_dict(torch.load(prev_checkpoint_path+'/optim_'+suffix+'.pt'))
@@ -321,24 +345,7 @@ else:
                 print("epoch:{} -> train_loss={},val_loss={} - {}".format(epoch, round(train_loss, 5),round(val_loss, 5), time.time()-stime))
 
 print('Finished Training')
-# ts = str(time.time())
-# best_model_path = checkpoint_path+'/model_'+ts+'.pt'
-# opt_save_path = checkpoint_path+'/optim_'+ts+'.pt'
-# sched_save_path = checkpoint_path+'/sched_'+ts+'.pt'
-# state_save_path = checkpoint_path+'/state_'+ts+'.pt'
-# state = {'epoch': epoch+1,
-#         'model_state': model.state_dict(),
-#         'optim_state': optimizer.state_dict(),
-#         'last_train_loss': train_losses[-1],
-#         'last_val_loss': val_losses[-1],
-#         'total_iters': iter_count
-#         }
 
-# save_checkpoint(state, state_save_path)
-# # sometimes loading from state dict is not wokring, so...
-# torch.save(best_model.state_dict(), best_model_path)
-# torch.save(optimizer.state_dict(), opt_save_path)
-# torch.save(lr_sched.state_dict(), sched_save_path)
 
 best_model_path = checkpoint_path+'/model_cp.pt'
 opt_save_path = checkpoint_path+'/optim_cp.pt'
@@ -430,14 +437,14 @@ fig = plt.figure(figsize=(10,7))
 plt.subplot(2,1,1)
 plt.bar(range(1,rangLength), dist_accuracies)
 for index, value in enumerate(dist_accuracies):
-    plt.text(index+0.8, value, str(np.round(value, 2))+'%')
+    plt.text(index+1, value, str(np.round(value, 2))+'%', ha='center', va='bottom', rotation=90)
 plt.title('distance-wise accuracy')
 plt.xlabel('distance values')
 plt.ylabel('accuracy')
 plt.subplot(2, 1, 2)
 plt.bar(range(1, rangLength), dist_counts)
 for index, value in enumerate(dist_counts):
-    plt.text(index+0.8, value, str(value))
+    plt.text(index+1, value, str(value), ha='center', va='bottom', rotation=90)
 plt.title('distance-wise count')
 plt.xlabel('distance values')
 plt.ylabel('counts')

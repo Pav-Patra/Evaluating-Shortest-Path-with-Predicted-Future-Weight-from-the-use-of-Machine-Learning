@@ -1,9 +1,21 @@
-from collections import defaultdict    # used to create the adjacency matrix of node connections with fast look-up times
+from collections import defaultdict    # used to create the adjacency list of node connections with fast look-up times
 import networkx as nx
 import random    # used for random number generation in graph plots
 import heapq     # used to initialise a priority queue for Dijkstra's
 from ctypes import Array
+import numpy as np
 
+"""
+This file is created by Pav Patra
+
+Incrementral_Shortest_Path.py Python file containing the Incremental Shortest Path algoreithm class, (Graph).
+
+The Graph class can be used to generate a dynamic, undirected, weighted graph.
+
+The incrementalShortestPath() method in Graph calculates and stores all shortest path distances
+in the Graph class's data structure.
+
+"""
 
 
 # define a tree class
@@ -40,6 +52,9 @@ class Graph:
         self.addedEdges = []
         self.addedNodes = [] 
 
+        # store the degree of each node to es=nsure the graph remains connected
+        self.nodeDegree = []
+
         # used to hold recent edge weight changes to draw red
         self.recentChanges = []
 
@@ -61,6 +76,7 @@ class Graph:
         # this graph will ensure the graph contains double the number of edges than nodes
 
         totalNodes = num_nodes        # add each of these stated totalNodes to the graph, starting from zero
+        self.nodeDegree = np.zeros(num_nodes)
         for i in range(totalNodes):
             #print("")
             # random node values
@@ -70,6 +86,10 @@ class Graph:
                 # recalculate the edge node commections
                 x = random.randint(0,totalNodes)
                 y = random.randint(0, totalNodes)
+
+            
+            self.nodeDegree[x] += 1
+            self.nodeDegree[y] += 1
 
             # fix the case where the graph is unconnected. Graph must be connected
             
@@ -81,7 +101,7 @@ class Graph:
             if x not in self.addedNodes and len(self.addedNodes) > 0:     # change len(self.addedNodes) > 0 to ensure all nodes are connected, however this significantly slows down performance. 
                 #print("fix x")
                 tempNode = random.choice(self.addedNodes)
-                self.addEdge(tempNode, x, weight=random.randint(1, 10))
+                self.addEdge(tempNode, x, weight=random.randint(1, 30))
                 self.addedNodes.append(x)
                 self.addedEdges.append((tempNode, x))
             elif self.addedNodes == []:          # since the list of visisted nodes is empty, it is impossible to assign x to an existing node
@@ -92,7 +112,7 @@ class Graph:
             if y not in self.addedNodes and len(self.addedNodes) > 0:      # change len(self.addedNodes) > 0 to ensure all nodes are connected, however this significantly slows down performance. 
                 #print("fix y")
                 tempNode = random.choice(self.addedNodes)
-                self.addEdge(tempNode, y, weight=random.randint(1, 10))
+                self.addEdge(tempNode, y, weight=random.randint(1, 30))
                 self.addedNodes.append(y)
                 self.addedEdges.append((tempNode, y))
             elif self.addedNodes == []:          # since the list of visisted nodes is empty, it is impossible to assign x to an existing node
@@ -101,9 +121,9 @@ class Graph:
             # now add edge connection from new node to node y, regardless of whether it had already existed in the graph or not
             # final check to not duplicate edges with different weights
             if (x,y) not in self.addedEdges and (y,x) not in self.addedEdges:
-                self.addEdge(x, y, weight=random.randint(1, 10))
+                self.addEdge(x, y, weight=random.randint(1, 30))
                 self.addedEdges.append((x,y))
-
+        print(self.nodeDegree)
       
     def drawGraph(self):
         
@@ -152,39 +172,138 @@ class Graph:
 
 
     def changeGraph(self):
-        randomEdge = random.choice(self.addedEdges)
-        x = randomEdge[0]
-        y = randomEdge[1]
+        # modify change graph to either add new edge, change weight of an existing weight, or delete an edge
 
-        # from g.graph, get the index of tuple for the connected edge between x and y
-        # ideally change this weight to the new weight
+        randomChoice = random.randint(0, 2)
 
+        totalNodes = max(self.graph)        # add each of these stated totalNodes to the graph, starting from zero
 
-        # Get index of tuple in the dictionary of x coords to y coords in g.graph
-        # This allows us to extract the old weight from g.graph and update it for the new weight
-        tupleIndexX = [s[0] for s in self.graph[x]].index(y)
-        tupleIndexY = [s[0] for s in self.graph[y]].index(x)
-        # fetch old weight
-        oldWeight = self.graph[x][tupleIndexX][1]
-        print(f"{self.graph[x]}")
+        if randomChoice == 0:
+            # change the weight of an existing random edge
+            randomEdge = random.choice(self.addedEdges)
+            x = randomEdge[0]
+            y = randomEdge[1]
 
-        print(f"Random edge: ({x}, {y}) with weight = {oldWeight}")
-
-        # generate new weight
-        newWeight = random.randint(0, 30)
-
-        # assign new weight to old tuple (python does not support tuple item assignment so the tuple must be generated again)
-        # update in the reverse direction as well since weight between two edges is equal for both indexes x and y in the graph adjacency matrix
-        newTuplex = (y, newWeight)
-        newTupley = (x, newWeight)
-        self.graph[x][tupleIndexX] = newTuplex
-        self.graph[y][tupleIndexY] = newTupley
-
-        # record change
-        self.recentChanges.append((x,y))
+            # from g.graph, get the index of tuple for the connected edge between x and y
+            # ideally change this weight to the new weight
 
 
-        print(f"Edited graph: {self.graph[x]}")
+            # Get index of tuple in the dictionary of x coords to y coords in g.graph
+            # This allows us to extract the old weight from g.graph and update it for the new weight
+            tupleIndexX = [s[0] for s in self.graph[x]].index(y)
+            tupleIndexY = [s[0] for s in self.graph[y]].index(x)
+            # fetch old weight
+            oldWeight = self.graph[x][tupleIndexX][1]
+            print(f"{self.graph[x]}")
+
+            self.nodeDegree[x] += 1
+            self.nodeDegree[y] += 1
+
+            print(f"Random edge: ({x}, {y}) with weight = {oldWeight}")
+
+            # generate new weight
+            newWeight = random.randint(0, 30)
+
+            # assign new weight to old tuple (python does not support tuple item assignment so the tuple must be generated again)
+            # update in the reverse direction as well since weight between two edges is equal for both indexes x and y in the graph adjacency matrix
+            newTuplex = (y, newWeight)
+            newTupley = (x, newWeight)
+            self.graph[x][tupleIndexX] = newTuplex
+            self.graph[y][tupleIndexY] = newTupley
+
+            # record change
+            self.recentChanges.append((x,y))
+
+
+            print(f"Edited graph: {self.graph[x]}")
+        elif randomChoice == 1:
+            # add a new edge into the existing graph of existing nodes
+            print("Adding new edge for change")
+
+             # random node values
+            x = random.randint(0,totalNodes)
+            y = random.randint(0,totalNodes)
+
+            while x == y or (x, y) in self.addedEdges or (y, x) in self.addedEdges:     # don't add the same nodes connected to each other or edges already contained in the graph
+                # recalculate the edge node commections
+                x = random.randint(0,totalNodes)
+                y = random.randint(0, totalNodes)
+
+            # add the new edge with random weight since it has been determined it does not already exist i n the current graph
+            weight = random.randint(1,30)
+            self.addEdge(x, y, weight=weight)
+            self.addedEdges.append((x,y))
+
+            # record change
+            self.recentChanges.append((x,y))
+
+            print(f"Added ({x},{y}) as new edge with weight {weight}")
+
+        else:
+            # delete an edge between two nodes where neither of their degrees are 1 (to not disconnect the graph)
+            print("Deleting existing edge")
+
+            # random node values
+            x = random.randint(0,totalNodes)
+            y = random.randint(0,totalNodes)
+            
+            # threshold of how many attempts an edge to delete can be searched
+            # could be a case where no edges can be deleted
+            attempts = 0
+
+            # ensure selected edge can be deleted
+            while ((x, y) not in self.addedEdges and (y,x) not in self.addedEdges) or self.nodeDegree[x] == 1 or self.nodeDegree[y] == 1:
+
+                # recalculate the edge node commections
+                x = random.randint(0,totalNodes)
+                xlength = len(self.graph[x])
+                
+                # search connected nodes from x
+                for i in range(xlength):
+                    y = self.graph[x][i][0]
+                    # check if it is valid
+                    if(x, y) in self.addedEdges or (y,x) in self.addedEdges and self.nodeDegree[x] > 1 and self.nodeDegree[y] > 1:
+                        #print(f"found {x} and {y}")
+                        break
+                        
+
+                #print(f"({x},{y})")
+                #print((y,x) not in self.addedEdges)
+                #print((x, y) not in self.addedEdges)
+                #print(self.nodeDegree[x] == 1)
+                #print(self.nodeDegree[y] == 1)
+
+                attempts += 1
+                if attempts > 10:
+                    # end the function if a deleted edge could not be found
+                    return
+
+            # remove from self.graph as well
+
+            # delete the edge selected from the currently stored edges
+            if (x,y) in self.addedEdges:
+                self.addedEdges.remove((x,y))
+            else:
+                self.addedEdges.remove((y,x))
+
+            # Get index of tuple in the dictionary of x coords to y coords in g.graph
+            # This allows us to delete the edge in both directions stored from g.graph
+            tupleIndexWeightX = [s[0] for s in self.graph[x]].index(y)
+            tupleIndexWeightY = [s[0] for s in self.graph[y]].index(x)
+
+            xEdgeTuple = self.graph[x][tupleIndexWeightX]
+            yEdgeTuple = self.graph[y][tupleIndexWeightY]
+
+            print(f"Deleting edge {x} to {xEdgeTuple[0]} wth weight {xEdgeTuple[1]}")
+            print(f"Deleting edge {y} to {yEdgeTuple[0]} wth weight {yEdgeTuple[1]}")
+
+            self.graph[x].remove(xEdgeTuple)
+            self.graph[y].remove(yEdgeTuple)
+            
+            self.nodeDegree[x] -= 1
+            self.nodeDegree[y] -= 1
+
+
 
 
     # Function to add a new node to the already existing graph
@@ -281,8 +400,6 @@ class Graph:
         pq = []
         heapq.heappush(pq, (0, src))     # the distance at the src is always 0
 
-
-
         # create vector that initiialises all distances as infinity
         dist = [float('inf')] * (max(self.graph) + 1) 
         dist[src] = 0
@@ -331,9 +448,7 @@ class Graph:
         # add newly constructed tree to the list of rooted shortest paths
         self.trees[src] = tree_nodes      
 
-
-        # print shortest distances from stated src node
-        # print(f"Shortest path distances from src {src} to stated nodes:")    STDOUT 
+        # print(f"Shortest path distances from src {src} to stated nodes:")    
         return dist
 
 
@@ -351,7 +466,7 @@ class Graph:
             temp = self.dijkstraSP(i)
             dists.append(temp)
 
-        # potentially construct the shortest path tree in dijksraSP
+    # potentially construct the shortest path tree in dijksraSP
 
 
 

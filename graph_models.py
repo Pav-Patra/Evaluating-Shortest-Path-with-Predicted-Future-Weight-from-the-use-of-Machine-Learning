@@ -5,7 +5,9 @@
     
     Developed for IREM project
 
-    Edited by Sean McLeish for CS344 Discrete Maths Project 2023
+    Modified by Sean McLeish: https://github.com/mcleish7/DT-GNN
+
+    Utilised by Pav Patra in custom SP_NN_model.py class
 """
 
 import torch
@@ -17,106 +19,6 @@ import sys
 
 import dt_1d_net as dt_models
 
-class GraphEBM(nn.Module):
-    # Created for IREM project
-    def __init__(self, inp_dim, out_dim, mem):
-        super(GraphEBM, self).__init__()
-        h = 128
-
-        self.edge_map = nn.Linear(1, h // 2)
-        self.edge_map_opt = nn.Linear(1, h // 2)
-
-        self.conv1 = GINEConv(nn.Sequential(nn.Linear(1, 128)), edge_dim=h)
-        self.conv2 = GINEConv(nn.Sequential(nn.Linear(128, 128)), edge_dim=h)
-        self.conv3 = GINEConv(nn.Sequential(nn.Linear(128, 128)), edge_dim=h)
-
-        self.fc1 = nn.Linear(128, 128)
-        self.fc2 = nn.Linear(128, 1)
-
-
-    def forward(self, inp, opt_edge):
-
-        edge_embed = self.edge_map(inp.edge_attr)
-        opt_edge_embed = self.edge_map_opt(opt_edge)
-
-        edge_embed = torch.cat([edge_embed, opt_edge_embed], dim=-1)
-
-        h = self.conv1(inp.x, inp.edge_index, edge_attr=edge_embed)
-        h = self.conv2(h, inp.edge_index, edge_attr=edge_embed)
-        h = self.conv3(h, inp.edge_index, edge_attr=edge_embed)
-        mean_feat = global_max_pool(h, inp.batch)
-        energy = self.fc2(F.relu(self.fc1(mean_feat)))
-
-        return energy
-
-
-class GraphIterative(nn.Module):
-    # Created for IREM project
-    def __init__(self, inp_dim, out_dim, mem):
-        super(GraphIterative, self).__init__()
-        h = 128
-
-        self.edge_map = nn.Linear(1, h // 2)
-        self.edge_map_opt = nn.Linear(1, h // 2)
-
-        self.conv1 = GINEConv(nn.Sequential(nn.Linear(1, 128)), edge_dim=h)
-        self.conv2 = GINEConv(nn.Sequential(nn.Linear(128, 128)), edge_dim=h)
-        self.conv3 = GINEConv(nn.Sequential(nn.Linear(128, 128)), edge_dim=h)
-
-        self.decode = nn.Linear(256, 1)
-
-    def forward(self, inp, opt_edge):
-
-        edge_embed = self.edge_map(inp.edge_attr)
-        opt_edge_embed = self.edge_map_opt(opt_edge)
-
-        edge_embed = torch.cat([edge_embed, opt_edge_embed], dim=-1)
-
-        h = self.conv1(inp.x, inp.edge_index, edge_attr=edge_embed)
-        h = self.conv2(h, inp.edge_index, edge_attr=edge_embed)
-        h = self.conv3(h, inp.edge_index, edge_attr=edge_embed)
-        
-        edge_index = inp.edge_index
-        hidden = h
-
-        h1 = hidden[edge_index[0]]
-        h2 = hidden[edge_index[1]]
-
-        h = torch.cat([h1, h2], dim=-1)
-        output = self.decode(h)
-
-        return output
-
-
-class GraphRecurrent(nn.Module):
-    # Created for IREM project
-    def __init__(self, inp_dim, out_dim):
-        super(GraphRecurrent, self).__init__()
-        h = 128
-
-        self.edge_map = nn.Linear(1, h)
-
-        self.conv1 = GINEConv(nn.Sequential(nn.Linear(1, 128)), edge_dim=h)
-
-        self.lstm = nn.LSTM(h, h)
-        self.conv3 = GINEConv(nn.Sequential(nn.Linear(128, 128)), edge_dim=h)
-
-        self.decode = nn.Linear(256, 1)
-
-    def forward(self, inp, state=None):
-
-        edge_embed = self.edge_map(inp.edge_attr)
-        h = self.conv1(inp.x, inp.edge_index, edge_attr=edge_embed)
-        h, state = self.lstm(h[None], state)
-        h = self.conv3(h[0], inp.edge_index, edge_attr=edge_embed)
-        edge_index = inp.edge_index
-        hidden = h
-
-        h1 = hidden[edge_index[0]]
-        h2 = hidden[edge_index[1]]
-        h = torch.cat([h1, h2], dim=-1)
-        output = self.decode(h)
-        return output, state
 
 class DT_recurrent(nn.Module):
     """
@@ -303,80 +205,9 @@ class DT_recurrent(nn.Module):
         """
         self.random_noise = not self.random_noise
 
-class GraphPonder(nn.Module):
-    # Created for IREM project
-    def __init__(self, inp_dim, out_dim):
-        super(GraphPonder, self).__init__()
-        h = 128
-
-        self.edge_map = nn.Linear(1, h)
-
-        self.conv1 = GINEConv(nn.Sequential(nn.Linear(1, 128)), edge_dim=h)
-        self.conv2 = GINEConv(nn.Sequential(nn.Linear(128, 128)), edge_dim=h)
-        self.conv3 = GINEConv(nn.Sequential(nn.Linear(128, 128)), edge_dim=h)
-
-        self.decode = nn.Linear(256, 1)
-
-    def forward(self, inp, iters=1):
-
-        edge_embed = self.edge_map(inp.edge_attr)
-
-        h = self.conv1(inp.x, inp.edge_index, edge_attr=edge_embed)
-        outputs = []
-
-        for i in range(iters):
-            h = F.relu(self.conv2(h, inp.edge_index, edge_attr=edge_embed))
-
-            output = self.conv3(h, inp.edge_index, edge_attr=edge_embed)
-            
-            edge_index = inp.edge_index
-
-            hidden = output
-
-            h1 = hidden[edge_index[0]]
-            h2 = hidden[edge_index[1]]
-
-            output = torch.cat([h1, h2], dim=-1)
-            output = self.decode(output)
-
-            outputs.append(output)
-
-        return outputs
 
 
 
-class GraphFC(nn.Module):
-    # Created for IREM project
-    def __init__(self, inp_dim, out_dim):
-        super(GraphFC, self).__init__()
-        h = 128
-        
-        self.edge_map = nn.Linear(1, h)
-        self.conv1 = GINEConv(nn.Sequential(nn.Linear(1, 128)), edge_dim=h)
-        self.conv2 = GINEConv(nn.Sequential(nn.Linear(128, 128)), edge_dim=h)
-        self.conv3 = GINEConv(nn.Sequential(nn.Linear(128, 128)), edge_dim=h)
-
-        self.decode = nn.Linear(256, 1)
-
-
-    def forward(self, inp):
-
-        edge_embed = self.edge_map(inp.edge_attr)
-
-        h = self.conv1(inp.x, inp.edge_index, edge_attr=edge_embed)
-        h = self.conv2(h, inp.edge_index, edge_attr=edge_embed)
-        h = self.conv3(h, inp.edge_index, edge_attr=edge_embed)
-
-        edge_index = inp.edge_index
-        hidden = h
-
-        h1 = hidden[edge_index[0]]
-        h2 = hidden[edge_index[1]]
-
-        h = torch.cat([h1, h2], dim=-1)
-        output = self.decode(h)
-
-        return output
     
 class GAT(torch.nn.Module):
     """
@@ -463,55 +294,7 @@ class GAT(torch.nn.Module):
         output = self.decode(h)
         return output
 
-class EdgeConv(MessagePassing):
-    """
-    Base Class for the edge MPNN model
-    Based on code from: https://pytorch-geometric.readthedocs.io/en/latest/notes/create_gnn.html
-    Inherits:
-        torch_geometric.nn.MessagePassing (class)
-    Attributes
-    ----------
-    mlp: torch.nn.Sequential
-        defines transformations to be applied
-    Methods
-    -------
-    __init__(self, in_channels, out_channels)
-        Constructor for the base edge MPNN class
-    forward(self, data)
-        Forward call of the network, used to apply the network to data
-    message(self, x_i, x_j)
-        Message call of the network, used to pass messages between nodes
-    """
-    def __init__(self, in_channels, out_channels):
-        super().__init__(aggr='max') #  "Max" aggregation.
-        self.mlp = torch.nn.Sequential(torch.nn.Linear(2 * in_channels, out_channels),
-                       torch.nn.ReLU(),
-                       torch.nn.Linear(out_channels, out_channels))
 
-    def forward(self, x, edge_index):
-        """
-        Foward call for base edge mpnn model
-
-        Args:
-            x (torch.Tensor): node features, has shape [N, in_channels]
-            edge_index (torch.Tensor): edge index, has shape [2, E]
-        Returns:
-            the models output for the input data
-        """
-        return self.propagate(edge_index, x=x)
-
-    def message(self, x_i, x_j):
-        """
-        Message call for base edge mpnn model
-
-        Args:
-            x_i (torch.Tensor): has shape [E, in_channels]
-            x_j (torch.Tensor): has shape [E, in_channels]
-        Returns:
-            the transformation using the class variable mlp
-        """
-        tmp = torch.cat([x_i, x_j - x_i], dim=1)  # tmp has shape [E, 2 * in_channels]
-        return self.mlp(tmp)
     
 class DynamicEdgeConv(EdgeConv):
     """

@@ -4,10 +4,25 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.sparse import csr_matrix
-from scipy.sparse.csgraph import bellman_ford, dijkstra
+from scipy.sparse.csgraph import bellman_ford, dijkstra   # benchmarkin well-known shortest path algorithms
 from time import perf_counter
 import random
+import os
 
+
+
+"""
+This file is created by Pav Patra
+
+test_graph.py is the testing suite for this project
+
+Testing is maintained for both Incremental_Shortest_Path and SP_NN_Model Python files
+
+This file also contains the benchmark testing results of the developed ISP algorithm against Dijkstra's 
+and the Bellman-Ford algorithm
+
+To run this file, simply execute: python test_graph.py
+"""
 
 
 # test file to carry out a series of unit tests to test the Graph class functions in Incremental_Shortest_Path.py 
@@ -129,8 +144,6 @@ def test_pathAccuracy_model():
             test_g.drawGraph()                  # update nx graph
             test_m.declareFirstDataset(test_g)
 
-    # newDistance = test_g.findShortestPath(src,src,dst)
-
     actualDistance = nx.shortest_path_length(test_g.draw_graph, source=src, target=dst, weight='weight')
 
     print(f"OriginalDistance: {originalDistance}")
@@ -218,12 +231,15 @@ def test_runAccuracy_model():
 def bellmanTest():
     src = 12
     dst = 31
+    test_m.declareFirstDataset(test_g)
 
     rank = len(test_g.addedNodes)
 
     ISPTimes = np.empty([10], dtype=float)
 
     BFTimes = np.empty([10], dtype=float)
+
+    testResultsWrite = "ISP vs BF Test Times:\nISP Times:"
 
     # run 10 random path search instances for both algorithms and time them using timeit
     # before each path search, 50 random edges must be changed
@@ -258,11 +274,20 @@ def bellmanTest():
 
     # 10 BF algo runs
         
-    for _ in range(10):
+    for i in range(10):
         start = perf_counter()
 
         for _ in range(50):
             test_g.changeGraph()
+
+            # convert test_g into a rank x rank matrix
+            bfMatrix = np.zeros((rank, rank))
+
+            for u in range(rank):
+                for v, weight in test_g.graph[u]:
+                    bfMatrix[u][v] = weight
+
+            calcBFMatrix = bellman_ford(csgraph=csr_matrix(bfMatrix), directed=False, return_predecessors=False)
 
         src = random.randint(0, rank-1)
         dst = random.randint(0, rank-1)
@@ -289,30 +314,23 @@ def bellmanTest():
     print(BFTimes)
     print("")
 
+    for time in ISPTimes:
+        testResultsWrite = f"{testResultsWrite}\n{time}"
+    testResultsWrite = f"{testResultsWrite}\n\nBF Times:"
+    for time in BFTimes:
+        testResultsWrite = f"{testResultsWrite}\n{time}"
 
-    # test_g.incrementalShortestPath()
-    # ispDistance = test_g.findShortestPath(src, src, dst)
+    # save results to a text file called "results.txt" in the cwd
+    current_dir = os.getcwd()
 
-    # # bellman_ford does not work here as it is outdated
-    # # use BF and Diskstra functiojns in scipy.sparse.csgraph
-    # #bfDistance = bellman_ford(test_g.draw_graph, src, dst, weight='weight')
+    # define the file path
+    file_path = os.path.join(current_dir, "results.txt")
 
+    # open new file in write mode
+    with open(file_path, "w") as file:
+        file.write(testResultsWrite)
+    file.close()
 
-    # # convert test_g into a rank x rank matrix
-    # bfMatrix = np.zeros((rank, rank))
-
-    # for u in range(rank):
-    #     for v, weight in test_g.graph[u]:
-    #         bfMatrix[u][v] = weight
-    
-    # calcBFMatrix = bellman_ford(csgraph=csr_matrix(bfMatrix), directed=False, return_predecessors=False)
-
-    # print(calcBFMatrix)
-    # bfDistance = int(calcBFMatrix[src][dst])
-
-
-    # print(f"ISP distance: {ispDistance}")
-    # print(f"Bellman-Ford distance: {bfDistance}")
 
     
     # PLOT RESULTS
@@ -329,19 +347,17 @@ def bellmanTest():
     plt.bar(ind, ISPTimes, width, label='ISP Time')
     plt.bar(ind + width, BFTimes, width, label='BF Time')
 
-    plt.xlabel('Iteration')
-    plt.ylabel('Elapsed Execution Time (s)')
-    plt.title('Comparison of ISP vs BF Runtimes')
+    plt.xlabel('Iteration', fontsize=15, fontweight='bold')
+    plt.ylabel('Elapsed Execution Time (s)', fontsize=15, fontweight='bold')
+    plt.title('Comparison of ISP vs Bellman-Ford Runtimes')
 
     plt.ylim(0, 2)
 
-    plt.xticks(ind + width / 2, ('1', '2', '3', '4', '5', '6', '7', '8', '9', '10'))
+    plt.xticks(ind + width / 2, ('1', '2', '3', '4', '5', '6', '7', '8', '9', '10'), fontsize=15, fontweight='bold')
 
-    plt.legend(loc='best')
+    plt.legend(loc='best', fontsize='large', title_fontsize='15', prop={'weight':'bold'})
     
                
-
-        
     
 
     assert 1 == 1
@@ -352,12 +368,15 @@ def bellmanTest():
 def dijkstraTest():
     src = 12
     dst = 31
+    test_m.declareFirstDataset(test_g)
 
     rank = len(test_g.addedNodes)
 
     ISPTimes = np.empty([10], dtype=float)
 
     dijkTimes = np.empty([10], dtype=float)
+
+    testResultsWrite = "\n\nISP vs Dijkstra Test Times:\nISP Times:"
 
     # run 10 random path search instances for both algorithms and time them using timeit
     # before each path search, 50 random edges must be changed
@@ -388,16 +407,25 @@ def dijkstraTest():
 
         ISPTimes[i] = end - start
         
+        
 
-  
 
     # 10 BF algo runs
         
-    for _ in range(10):
+    for i in range(10):
         start = perf_counter()
 
         for _ in range(50):
             test_g.changeGraph()
+
+             # convert test_g into a rank x rank matrix
+            dijMatrix = np.zeros((rank, rank))
+
+            for u in range(rank):
+                for v, weight in test_g.graph[u]:
+                    dijMatrix[u][v] = weight
+
+            calcDijMatrix = dijkstra(csgraph=csr_matrix(dijMatrix), directed=False, return_predecessors=False)
 
         src = random.randint(0, rank-1)
         dst = random.randint(0, rank-1)
@@ -416,6 +444,7 @@ def dijkstraTest():
         end = perf_counter()
         dijkTimes[i] = end - start
 
+
     print("ISP Times:")
     print(ISPTimes)
     print("")
@@ -424,6 +453,23 @@ def dijkstraTest():
     print(dijkTimes)
     print("")
 
+    for time in ISPTimes:
+        testResultsWrite = f"{testResultsWrite}\n{time}"
+    testResultsWrite = f"{testResultsWrite}\n\nDijkstra Times:"
+    for time in dijkTimes:
+        testResultsWrite = f"{testResultsWrite}\n{time}"
+
+
+    # save results to a text file called "results.txt" in the cwd
+    current_dir = os.getcwd()
+
+    # define the file path
+    file_path = os.path.join(current_dir, "results.txt")
+
+    # open new file in write mode
+    with open(file_path, "a") as file:
+        file.write(testResultsWrite)
+    file.close()
 
     # PLOT RESULTS
     plt.figure(figsize=(10,5))
@@ -439,15 +485,143 @@ def dijkstraTest():
     plt.bar(ind, ISPTimes, width, label='ISP Time')
     plt.bar(ind + width, dijkTimes, width, label='Dijkstra Time')
 
-    plt.xlabel('Iteration')
-    plt.ylabel('Elapsed Execution Time (s)')
+    plt.xlabel('Iteration', fontsize=15, fontweight='bold')
+    plt.ylabel('Elapsed Execution Time (s)', fontsize=15, fontweight='bold')
     plt.title('Comparison of ISP vs Dijkstra Runtimes')
 
     plt.ylim(0, 2)
 
-    plt.xticks(ind + width / 2, ('1', '2', '3', '4', '5', '6', '7', '8', '9', '10'))
+    plt.xticks(ind + width / 2, ('1', '2', '3', '4', '5', '6', '7', '8', '9', '10'), fontsize=15, fontweight='bold')
 
-    plt.legend(loc='best')    
+    plt.legend(loc='best', fontsize='large', title_fontsize='15', prop={'weight':'bold'})    
+    
+
+    assert 1 == 1
+
+
+"""
+    modelRunTimeTest()
+    Method to test the run time difference between running the Incremental Shortest Path algorithm with the 
+    ShortestPath NN and without this model.
+    Results plotted onto a graph.
+"""
+def modelRunTimeTest():
+    test_g = ISP.Graph()
+    test_m = SPN() 
+    test_g.generateGraph(100)
+    test_g.incrementalShortestPath()
+    test_m.declareFirstDataset(test_g)
+
+    src = 12
+    dst = 31
+
+    rank = len(test_g.addedNodes)
+
+    ISPTimes = np.empty([10], dtype=float)
+
+    ISPModelTimes = np.empty([10], dtype=float)
+
+    testResultsWrite = "\n\nISP with model vs without model Times:\nwith model Times:"
+
+    # run 10 random path search instances for both algorithms and time them using timeit
+    # before each path search, 50 random edges must be changed
+
+    # 10 ISP algo runs with the model
+
+    for i in range(10):
+        start = perf_counter()
+
+        for _ in range(50):
+            test_g.changeGraph()
+
+        src = random.randint(0, rank-1)
+        dst = random.randint(0, rank-1)
+
+        change = test_m.run(test_g, src=src, dst=dst)
+
+        if(change >= 1e-6):
+            print("Execute ISP Update")
+            test_g.incrementalShortestPath()
+            test_m.declareFirstDataset(test_g)
+
+        distance = test_g.findShortestPath(src,src,dst)
+
+        print(f"Distance between {src} and {dst} with ISP is: {distance}")
+
+        end = perf_counter()
+
+        ISPModelTimes[i] = end - start
+
+
+    # 10 ISP algo runs without the model 
+    for i in range(10):
+        start = perf_counter()
+
+        for _ in range(50):
+            test_g.changeGraph()
+
+        src = random.randint(0, rank-1)
+        dst = random.randint(0, rank-1)
+
+        test_g.incrementalShortestPath()
+
+        distance = test_g.findShortestPath(src,src,dst)
+
+        print(f"Distance between {src} and {dst} with ISP is: {distance}")
+
+        end = perf_counter()
+
+        ISPTimes[i] = end - start    
+
+    print("ISP Times with Model:")
+    print(ISPModelTimes)
+    print("")
+
+    print("ISP Times without Model:")
+    print(ISPTimes)
+    print("")
+
+    for time in ISPModelTimes:
+        testResultsWrite = f"{testResultsWrite}\n{time}"
+    testResultsWrite = f"{testResultsWrite}\n\nwithout model Times:"
+    for time in ISPTimes:
+        testResultsWrite = f"{testResultsWrite}\n{time}"
+
+    # save results to a text file called "results.txt" in the cwd
+    current_dir = os.getcwd()
+
+    # define the file path
+    file_path = os.path.join(current_dir, "results.txt")
+
+    # open new file in write mode
+    with open(file_path, "a") as file:
+        file.write(testResultsWrite)
+    file.close()
+
+
+    # PLOT RESULTS
+    plt.figure(figsize=(10,5))
+
+    # width of bar
+    width = 0.3
+
+    # number of data points
+    n = 10
+    # posiotion of bars
+    ind = np.arange(n)
+
+    plt.bar(ind, ISPModelTimes, width, label='ISP Model Time')
+    plt.bar(ind + width, ISPTimes, width, label='ISP non-Model Time')
+
+    plt.xlabel('Iteration', fontsize=15, fontweight='bold')
+    plt.ylabel('Elapsed Execution Time (s)', fontsize=15, fontweight='bold')
+    plt.title('Comparison of ISP with Model vs ISP without Model Runtimes')
+
+    plt.ylim(0, 2)
+
+    plt.xticks(ind + width / 2, ('1', '2', '3', '4', '5', '6', '7', '8', '9', '10'), fontsize=15, fontweight='bold')
+
+    plt.legend(loc='best', fontsize='large', title_fontsize='15', prop={'weight':'bold'})    
     
 
     assert 1 == 1
@@ -455,15 +629,11 @@ def dijkstraTest():
 
 
 
-
-
-
 if __name__ == "__main__":
     test_test()
     try:
-        # either networkx is wrong or my algo is wrong
         test_ISPalgo()
-        print("Everything Passed")
+        
     
     except AssertionError:
         # discovered error from .generateGraph() where additional edge weights for assigned edges are being added, duplicating edges with different weights as a result 
@@ -483,7 +653,9 @@ if __name__ == "__main__":
 
     bellmanTest()
     dijkstraTest()
+    modelRunTimeTest()
 
+    print("Everything Passed")
 
     plt.show()
 

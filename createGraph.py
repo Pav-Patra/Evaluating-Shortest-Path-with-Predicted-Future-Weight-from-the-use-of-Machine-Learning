@@ -4,26 +4,33 @@ import matplotlib.pyplot as plt
 import keyboard, time
 #import graphEmbedding as GE        # defined class that returns embedding of a graph
 import random
-import os
-from torch.utils.tensorboard import SummaryWriter
 
+"""
+This file is created by Pav Patra
+
+
+createGraph.py demonstrates how the Incremental Shortest Path algorithm alongside its Shortest 
+Path Nerual Network used to return the shortest path between any 2 nodes for dynamic, undirected, 
+weighted graphs in real time.
+"""
 
 
 # Create a graph 
 g = ISP.Graph()
+
+# setup for the trained Shortet Path model  
 model = SPN()
-rank = 10
+
+
+print("As this algorithm executes continuous dynamic changes to the undirected, weighted graph, press [SPACE] to pause execution to fetch a shortest path distance")
+rank = int(input("Enter the total number of nodes for a new graph:"))
+
+
 
 
 g.generateGraph(rank)
 
 print(g.graph)
-
-#print(g.addedNodes)
-#print(g.addedEdges)
-
-
-#g.printTree()
 
 g.drawGraph()    
 
@@ -42,17 +49,15 @@ dest = 4
 
 print(f"\nShortest Path from node {src} to {dest} = {g.findShortestPath(src, src, dest)}")
 
-#print(f"Current latest node is {max(g.graph)}")
 
 print(f"Total number of nodes, starting from 0, is: {max(g.graph)}")
+
 # an input can act as a block to prevent the previous plot from closing
 fromNode= int(input("Enter the src node number you would like to use to identify a shortest path:"))
 toNode = int(input("Enter the dst node number you would like to use to identify a shortest path:"))
 print(f"\nShortest Path from node {fromNode} to {toNode} = {g.findShortestPath(fromNode, fromNode, toNode)}")
 
 
-
-#####################################################################################################################################
 # CODE THAT RANDOMLY CHANGES EDGES ON THE GRAPH EVERY 5 SECONDS FOR A SPECIFIED NUMBER OF TIMES
 
 respone = 1
@@ -60,13 +65,6 @@ respone = 1
 totalSP = 0
 totalWrong = 0
 
-# while True:
-#     print("working")
-#     if random.randint(0,30) == 15:
-#         g.changeGraph()
-#         g.incrementalShortestPath()
-#     if keyboard.read_key() == 'space':
-#         break
 
 # This block of code continuously updates a random edge weight on the graph every 3 seconds until an interrupt occurs (holding space)
 # after this interrupt, the user can view the graph and select a shortest path between 2 nodes
@@ -97,16 +95,14 @@ while respone == 1:
     # if the return value is non-zero, the graph needs updating
     
     
-    
-
     fromNode= int(input("Enter the src node number you would like to use to identify a shortest path:"))
     toNode = int(input("Enter the dst node number you would like to use to identify a shortest path:"))
 
     totalSP += 1
 
+    # run the Shortest Path NN model to establish edge weight change between src and dst nodes
     change = model.run(g, src=fromNode, dst=toNode)
 
-    # g.incrementalShortestPath()
 
     print(f"Calculated Change value: {change}")
 
@@ -125,47 +121,26 @@ while respone == 1:
 
     testLength  = g.findShortestPath(fromNode, fromNode, toNode)
 
-    print(f"Actual length: {testLength}")
 
     if (testLength != originalLength) and (change <= 1e-6):
          totalWrong += 1
          print("FIX ERROR")
          model.declareFirstDataset(g)
-
+    
+    print("As this algorithm executes continuous dynamic changes to the undirected, weighted graph, press [SPACE] to pause execution to fetch a shortest path distance")
+    
     respone = int(input("Would you like graph execution to continue? 1:YES 2:NO"))
-
-
-#######################################################################################################################################
-
-
-
-#g.changeGraph()
-
-#g.addAdditionalNode(0)
-
 
 # recompute the shortest path n-ary trees for each node after the graph change
 # hence, for each edge change in the grapha, dijkstra is computed M times (where M is the number of nodes in the graph)
 
-#g.incrementalShortestPath()
 
-
-#inp= int(input("Would you like a change to the graph? 1:YES 2:NO"))
 
 fig = plt.gcf()
 fig.clf()
 g.drawGraph()
 fig.show()
 
-
-# generate embedding for the graph
-
-# embedding = GE.getEmbedding(g.draw_graph)   # pass in  the networkx representation of graph g to .getEmbedding()
-
-# fig = plt.gcf()
-# fig.clf()
-# plt.scatter(embedding[:,0], embedding[:,1])
-# fig.show()
 
 respone = int(input("Would you like graph execution to continue? 1:YES 2:NO"))
 

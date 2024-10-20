@@ -5,7 +5,14 @@
     
     Developed for IREM project
 
-    Edited by Sean McLeish for CS344 Discrete Maths Project 2023
+    Modified by Sean McLeish: https://github.com/mcleish7/DT-GNN
+
+    Utilised by Pav Patra to create model_best.pth stored at 'projectDirectory\outputs\shortestpath\DT_sp\model_best.pth
+
+    to reproduce, run:
+
+    python graph_train.py --exp=DT_sp --logdir=shortestpath --train --num_steps=20 --dataset=shortestpath --cuda --infinite --dt --lr 0.0001 --prog --alpha=0.2 --json_name dt --rank=16 --gen_rank=0 --vary --random_noise
+    
 """
 import torch
 from graph_models import GraphEBM, GraphFC, GraphPonder, GraphRecurrent, DT_recurrent, GAT, DynamicEdgeConv, GCNConv

@@ -1,18 +1,25 @@
 import os
+import os.path as osp
 import numpy as np
 
-
+"""
+This file is created by Pav Patra
+"""
+# get current working directory
+cwd = os.getcwd()
 
 
 emd_map = {}
 
-embedding_file = os.listdir('C:/Users/pavpa/OneDrive/Documents/CS Uni/cs310/Project Practice Code/node2vec-deepLearning-distApprox/data/emb')
+path = osp.join(cwd, "data", "emb")
+
+embedding_file = os.listdir(path)
 
 for file in embedding_file:
     # find '.emd' file
     if file.endswith('.emd'):
         fileName = file
-        with open('C:/Users/pavpa/OneDrive/Documents/CS Uni/cs310/Project Practice Code/node2vec-deepLearning-distApprox/data/emb/'+fileName) as embFile:
+        with open(path+fileName) as embFile:
             lines = embFile.readlines()
 
 
